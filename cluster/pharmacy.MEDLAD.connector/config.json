@@ -1,0 +1,39 @@
+{
+    "connector.class": "io.debezium.connector.mysql.MySqlConnector",
+    "tasks.max": "1",
+
+    "key.converter":"io.confluent.connect.json.JsonSchemaConverter",
+    "key.converter.schema.registry.url": "http://schema-registry:8081",
+    "value.converter": "io.confluent.connect.json.JsonSchemaConverter",
+    "value.converter.schema.registry.url": "http://schema-registry:8081",
+
+    "database.hostname": "medlad", 
+    "database.port": "3306", 
+    "database.user": "spotlight", 
+    "database.password": "spotlight_dbz", 
+    "database.server.id": "1",
+    "topic.prefix": "spotlight.inventory.pharmacy.MEDLAD", 
+
+    "database.include.list": "demo",
+    "table.include.list": "demo.INVENTORY",
+    "schema.history.internal.kafka.bootstrap.servers": "kafka-1:19092,kafka-2:19092,kafka-3:19092", 
+    "schema.history.internal.kafka.topic": "schemahistory.pharmacy.MEDLAD", 
+    "include.schema.changes": "false",
+
+    "transforms": "addPharmacyName,addPharmacyLocation,addPharmacyNameToKey,extractField",
+
+    "transforms.extractField.type": "org.apache.kafka.connect.transforms.ExtractField$Value",
+    "transforms.extractField.field": "after",
+
+    "transforms.addPharmacyName.type": "org.apache.kafka.connect.transforms.InsertField$Value",
+    "transforms.addPharmacyName.static.field": "PharmacyName",
+    "transforms.addPharmacyName.static.value": "MEDLAD Pharmacy",
+
+    "transforms.addPharmacyNameToKey.type": "org.apache.kafka.connect.transforms.InsertField$Key",
+    "transforms.addPharmacyNameToKey.static.field": "PharmacyName",
+    "transforms.addPharmacyNameToKey.static.value": "MEDLAD Pharmacy",
+
+    "transforms.addPharmacyLocation.type": "org.apache.kafka.connect.transforms.InsertField$Value",
+    "transforms.addPharmacyLocation.static.field": "PharmacyLocation",
+    "transforms.addPharmacyLocation.static.value": "London, Ontario"
+}

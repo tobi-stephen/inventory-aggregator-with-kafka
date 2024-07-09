@@ -1,0 +1,17 @@
+use demo;
+
+create table INVENTORY (
+	id MEDIUMINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+	drug_name VARCHAR(500),
+	quantity INT,
+	expiration_date DATE,
+	manufacturer VARCHAR(100),
+	price DECIMAL(6,2),
+	dosage VARCHAR(10),
+	prescription_required VARCHAR(100),
+	storage_conditions VARCHAR(100),
+	lot_number INT,
+	location VARCHAR(100),
+	CREATE_TS TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	UPDATE_TS TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);

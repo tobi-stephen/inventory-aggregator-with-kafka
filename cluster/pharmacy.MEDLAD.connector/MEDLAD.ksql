@@ -1,0 +1,67 @@
+CREATE SOURCE CONNECTOR MEDLAD_01 WITH ( 
+
+
+    'connector.class' = 'io.debezium.connector.mysql.MySqlConnector',
+    'tasks.max' = '1',
+
+    'key.converter'='io.confluent.connect.json.JsonSchemaConverter',
+    'key.converter.schema.registry.url' = 'http://schema-registry:8081',
+    'value.converter' = 'io.confluent.connect.json.JsonSchemaConverter',
+    'value.converter.schema.registry.url' = 'http://schema-registry:8081',
+
+    'database.hostname' = 'medlad', 
+    'database.port' = '3306', 
+    'database.user' = 'spotlight', 
+    'database.password' = 'spotlight_dbz', 
+    'database.server.id' = '1',
+    'topic.prefix' = 'MEDLAD',
+
+    'database.include.list' = 'demo',
+    'table.include.list' = 'demo.INVENTORY',
+    'schema.history.internal.kafka.bootstrap.servers' = 'kafka-1:19092', 
+    'schema.history.internal.kafka.topic' = 'schemahistory.MEDLAD', 
+    'include.schema.changes' = 'false'
+);
+
+SET 'auto.offset.reset' = 'earliest';
+
+CREATE OR REPLACE STREAM MD_01 WITH (
+  KAFKA_TOPIC='MEDLAD.demo.INVENTORY',
+  VALUE_FORMAT= 'JSON_SR',
+  KEY_FORMAT = 'JSON_SR');
+
+SELECT * FROM MD_01;
+
+CREATE OR REPLACE STREAM INVENTORY_MD AS
+  SELECT
+    ROWKEY,
+    'MD_' + CAST(AFTER->ID AS VARCHAR) AS PHARM_KEY, 
+    AFTER->DRUG_NAME,
+    AFTER->QUANTITY,
+    AFTER->EXPIRATION_DATE,
+    AFTER->MANUFACTURER,
+    AFTER->PRICE,
+    AFTER->CREATE_TS,
+    AFTER->UPDATE_TS,
+    'MD' AS PHARMACY_NAME,
+    'ONTARIO,CANADA' AS PHARMACY_LOCATION
+  FROM MD_01
+  WHERE AFTER IS NOT NULL;
+
+CREATE OR REPLACE STREAM INVENTORY_MD_REKEYED AS
+  SELECT
+    *
+  FROM INVENTORY_MD
+  PARTITION BY PHARM_KEY;
+
+CREATE OR REPLACE STREAM ALL_INVENTORY AS
+  SELECT
+    *
+  FROM INVENTORY_MD_REKEYED;
+
+-- CREATE OR REPLACE STREAM INVENTORY_DELETED (PHARM_KEY VARCHAR KEY, DUMMY VARCHAR)
+-- WITH (KEY_FORMAT='JSON_SR', VALUE_FORMAT='KAFKA', KAFKA_TOPIC='INVENTORY_MD_REKEYED');
+
+-- INSERT INTO INVENTORY_DELETED (PHARM_KEY, DUMMY) VALUES (, CAST(NULL AS VARCHAR));
+  
+-- SELECT * FROM INVENTORY_MD_REKEYED;

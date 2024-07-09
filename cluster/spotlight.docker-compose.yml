@@ -1,0 +1,221 @@
+---
+version: '2'
+services:
+  kafka-1:
+    image: ${IMAGE}
+    hostname: kafka-1
+    container_name: kafka-1
+    ports:
+      - 29092:9092
+    networks:
+      - spotlight
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka-1:9093,2@kafka-2:9093,3@kafka-3:9093'
+      KAFKA_LISTENERS: 'PLAINTEXT://:19092,CONTROLLER://:9093,PLAINTEXT_HOST://:9092'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-1:19092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      CLUSTER_ID: '4L6g3nShT-eMCtK--X86sw'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
+
+  kafka-2:
+    image: ${IMAGE}
+    hostname: kafka-2
+    container_name: kafka-2
+    ports:
+      - 39092:9092
+    networks:
+      - spotlight
+    environment:
+      KAFKA_NODE_ID: 2
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka-1:9093,2@kafka-2:9093,3@kafka-3:9093'
+      KAFKA_LISTENERS: 'PLAINTEXT://:19092,CONTROLLER://:9093,PLAINTEXT_HOST://:9092'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-2:19092,PLAINTEXT_HOST://localhost:39092
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      CLUSTER_ID: '4L6g3nShT-eMCtK--X86sw'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
+
+  kafka-3:
+    image: ${IMAGE}
+    hostname: kafka-3
+    container_name: kafka-3
+    ports:
+      - 49092:9092
+    networks:
+      - spotlight
+    environment:
+      KAFKA_NODE_ID: 3
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka-1:9093,2@kafka-2:9093,3@kafka-3:9093'
+      KAFKA_LISTENERS: 'PLAINTEXT://:19092,CONTROLLER://:9093,PLAINTEXT_HOST://:9092'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-3:19092,PLAINTEXT_HOST://localhost:49092
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      CLUSTER_ID: '4L6g3nShT-eMCtK--X86sw'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
+
+  kafka-ui:
+    container_name: kafka-ui
+    image: provectuslabs/kafka-ui:latest
+    ports:
+      - 8080:8080
+    networks:
+      - spotlight
+    depends_on:
+      - kafka-1
+      - kafka-2
+      - kafka-3
+      - schema-registry
+      - kafka-connect
+    environment:
+      KAFKA_CLUSTERS_0_NAME: kafka-cluster
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: 'kafka-1:19092,kafka-2:19092,kafka-3:19092'
+      KAFKA_CLUSTERS_0_KAFKACONNECT_0_NAME: kafka-connect
+      KAFKA_CLUSTERS_0_KAFKACONNECT_0_ADDRESS: http://kafka-connect:8083
+      KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schema-registry:8081
+      KAFKA_CLUSTERS_0_KSQLDBSERVER: http://ksqldb:8088
+      DYNAMIC_CONFIG_ENABLED: 'true'
+    
+  # kafdrop-ui:
+  #   container_name: kafkadrop-ui
+  #   image: obsidiandynamics/kafdrop:latest
+  #   depends_on:
+  #     - kafka-1
+  #   ports:
+  #     - 9000:9000
+  #   networks:
+  #     - spotlight
+  #   environment:
+  #     DYNAMIC_CONFIG_ENABLED: 'true'
+  #     KAFKA_BROKERCONNECT: 'kafka-1:19092,kafka-2:19092,kafka-3:19092'
+  #     SERVER_SERVLET_CONTEXTPATH: '/'
+
+  kafka-connect:
+    build:
+      context: .
+      dockerfile: ./spotlight.kafka.connect.Dockerfile
+    container_name: kafka-connect
+    ports:
+      - 8083:8083
+    networks:
+      - spotlight
+    environment:
+      CONNECT_BOOTSTRAP_SERVERS: "kafka-1:19092,kafka-2:19092,kafka-3:19092"
+      CONNECT_REST_PORT: 8083
+      CONNECT_GROUP_ID: compose-connect-group
+      CONNECT_CONFIG_STORAGE_TOPIC: docker-connect-configs
+      CONNECT_OFFSET_STORAGE_TOPIC: docker-connect-offsets
+      CONNECT_STATUS_STORAGE_TOPIC: docker-connect-status
+      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_INTERNAL_KEY_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_INTERNAL_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_REST_ADVERTISED_HOST_NAME: "kafka-connect"
+      CONNECT_LOG4J_ROOT_LOGLEVEL: "INFO"
+      CONNECT_LOG4J_LOGGERS: "org.apache.kafka.connect.runtime.rest=WARN,org.reflections=ERROR"
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: "1"
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: "1"
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: "1"
+      CONNECT_PLUGIN_PATH: '/usr/share/java,/etc/kafka-connect/jars,/usr/share/confluent-hub-components'
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:latest
+    hostname: schema-registry
+    container_name: schema-registry
+    ports:
+      - "8081:8081"
+    networks:
+      - spotlight
+    depends_on:
+      - kafka-1
+      - kafka-2
+      - kafka-3
+    environment:
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'PLAINTEXT://kafka-1:19092,PLAINTEXT://kafka-2:19092,PLAINTEXT://kafka-3:19092'
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_LISTENERS: http://schema-registry:8081
+      SCHEMA_REGISTRY_KAFKASTORE_SECURITY_PROTOCOL: PLAINTEXT
+      SCHEMA_REGISTRY_SCHEMA_REGISTRY_INTER_INSTANCE_PROTOCOL: "http"
+      SCHEMA_REGISTRY_LOG4J_ROOT_LOGLEVEL: INFO
+      SCHEMA_REGISTRY_KAFKASTORE_TOPIC: _schemas
+  
+  ksqldb:
+    # *-----------------------------*
+    # To connect to ksqlDB CLI
+    #   docker exec --interactive --tty ksqldb ksql http://localhost:8088
+    # *-----------------------------*
+    image: confluentinc/ksqldb-server:latest
+    container_name: ksqldb
+    hostname: ksqldb
+    depends_on:
+      - kafka-1
+      - kafka-2
+      - kafka-3
+      - schema-registry
+    ports:
+      - "8088:8088"
+    networks:
+      - spotlight
+    environment:
+      KSQL_LISTENERS: http://0.0.0.0:8088
+      KSQL_BOOTSTRAP_SERVERS: "kafka-1:19092,kafka-2:19092,kafka-3:19092"
+      KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE: "true"
+      KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
+      KSQL_KSQL_SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      KSQL_STREAMS_PRODUCER_MAX_BLOCK_MS: 9223372036854775807
+      KSQL_KSQL_CONNECT_URL: http://kafka-connect:8083
+      KSQL_KSQL_SERVICE_ID: confluent_spotlight
+      KSQL_KSQL_HIDDEN_TOPICS: '^_.*'
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.14.1
+    container_name: elasticsearch
+    hostname: elasticsearch
+    ports:
+      - 9200:9200
+    networks:
+      - spotlight
+    environment:
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: "-Xms1g -Xmx1g"
+      discovery.type: "single-node"
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.14.1
+    container_name: kibana
+    hostname: kibana
+    depends_on:
+      - elasticsearch
+    networks:
+      - spotlight
+    ports:
+      - 5601:5601
+    environment:
+      xpack.security.enabled: "false"
+      discovery.type: "single-node"
+
+
+# setting up a common network name here for communicating with the fictitious pharmacy systems
+networks:
+  spotlight:
+    name: spotlight
+

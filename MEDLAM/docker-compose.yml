@@ -1,0 +1,25 @@
+---
+version: '2'
+services:
+  medlam:
+    # *-----------------------------*
+    # To connect to the DB:
+    #   docker exec -it mysql bash -c 'mysql -u root -p$MYSQL_ROOT_PASSWORD demo'
+    # *-----------------------------*
+    image: mysql:8.0
+    container_name: medlam
+    hostname: medlam
+    ports:
+      - 3306:3306
+    networks:
+      - spotlight
+    environment:
+     MYSQL_ROOT_PASSWORD: strong_password
+    volumes:
+     - ${PWD}/data/samples:/docker-entrypoint-initdb.d
+     - ${PWD}/data:/data
+
+networks:
+  spotlight:
+    name: spotlight
+    external: true
